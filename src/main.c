@@ -39,11 +39,9 @@
 //BEGIN GLOBALS
 int ww=WW;
 int wh=WH;
-TTF_Font       *font		= NULL;
 
-char *text;
-SDL_Color color={BLUE};
 //BEGIN VISIBLES
+
 SDL_Surface    *temp_surface	= NULL;
 
 SDL_Texture    *logo		= NULL;
@@ -53,6 +51,10 @@ SDL_Texture    *text1		= NULL;
 SDL_Rect 	text1_dst;
 
 SDL_Rect 	TextInputRect;
+TTF_Font       *font		= NULL;
+
+char *text;
+SDL_Color color={BLUE};
 //END 	VISIBLES
 
 //END   GLOBALS
@@ -118,23 +120,28 @@ while(running){
 				;
 			}
 			if(event.button.button==SDL_BUTTON_LEFT){
-				if (event.button.clicks==2)
+				if (event.button.clicks == 2)
 					SDL_SetClipboardText( text );
 			}
 		}
 		if(event.type ==SDL_TEXTINPUT){
-			size_t lenght=strlen(text);
-			if (lenght<=25){
+			size_t lenght = strlen(text);
+			if (lenght <= 25){
 				size_t lenght2=strlen(event.text.text);
 				char *temp=calloc(lenght+lenght2+1,1);
 				strcat(temp,text);
 				strcat(temp,event.text.text);
-				lenght2=strlen(temp);
-				realloc(text, lenght2);
-				text=strdup(temp);
+				lenght2 = strlen(temp);
+				char *temp2;
+				temp2 = realloc( text, lenght2+1 );
+				if  (temp2 == NULL){
+					free(text);
+					running = 0;
+				}
+				text = temp2;
+				text = strdup(temp);
 				free(temp);
 				RenderText();
-
 			}
 		}
 		if(event.type == SDL_KEYDOWN ){
@@ -148,31 +155,71 @@ while(running){
 					break;
 				case SDLK_BACKSPACE:
 					if (strlen(text)){
-						size_t lenght=strlen(text);
-						char *temp=calloc(lenght-1,1 );
-						temp=strndup(text, (lenght-1));
-						
-						// handle UTF8
-						if (strlen(text)>1&&!isprint(temp[lenght-2])){
-// 							SDL_Log("garbage char");
-							realloc( temp, sizeof(char) * (lenght-2));
-							temp=strndup(text, (lenght-2));
-						}
-						
-						lenght=strlen(temp);
-						realloc( text, sizeof(char) * (lenght));
-						text=strdup(temp);
-						free(temp);
+						size_t lenght = strlen(text);
+						char *temp = calloc(lenght-1,1 );
+						temp = strndup(text, (lenght-1));
+						char *temp2;
+						if (lenght-1>0){
+							// handle UTF8
+							if ( strlen(text) >1 && !isprint(temp[lenght-2]) ){
+								
+								if (lenght-2>0){
+									temp2 = realloc( text, lenght-2 );
+									if  (temp2 == NULL){
+										free(text);
+										running = 0;
+									}
+									text = temp2;
+									temp = strndup(text, (lenght-2));
+								}else {
+									char *temp2;
+									temp2 = realloc( text, 1 );
+									if  (temp2 == NULL){
+										free(text);
+										running = 0;
+									} 
+									text = temp2;
+									text[0] = '\0';
+									RenderText();
+									break;
+								}
+							}
+							lenght = strlen(temp);
+							temp2 = realloc( text, lenght );
+							if  (temp2 == NULL){
+										free(text);
+										running=0;
+									}
+							text = temp2;
+							text = strdup(temp);
+							free(temp);
+						}else {
+								char *temp2;
+								temp2 = realloc( text, 1 );
+								if  (temp2 == NULL){
+									free(text);
+									running = 0;
+								}
+								text = temp2;
+								text[0] = '\0';
+							}
 						RenderText();
 					}
 					break;
 				case SDLK_v:
 					if (SDL_GetModState() & KMOD_CTRL){
 						if (SDL_HasClipboardText()){
-							char *temp=SDL_GetClipboardText();
-							size_t lenght=strlen(temp);
-							realloc( text, sizeof(char) * lenght);
-							text=strdup(temp);
+							char *temp = SDL_GetClipboardText();
+							size_t lenght = strlen(temp);
+							SDL_Log("l: %zu",lenght);
+							char *temp2;
+							temp2 = realloc( text, lenght+1 );
+							if  (temp2 == NULL){
+								free(text);
+								running=0;
+							}
+							text = temp2;
+							text = strdup(temp);
 							free(temp);
 							RenderText();
 						}
@@ -206,37 +253,34 @@ return EXIT_SUCCESS;
 //BEGIN FUNCTIONS
 void assets_in(void)
 {
-
-	font=TTF_OpenFont("assets/fonts/NimbusSanL-Regu.ttf", 36);
-	text=calloc(10,1);
-	strcpy(text,"Edit Text");
+	font = TTF_OpenFont("assets/fonts/NimbusSanL-Regu.ttf", 36);
+	text = calloc(10,1);
+	text = strcpy(text,"Edit Text");
 	//BEGIN LOGO
 	temp_surface = IMG_Load("assets/gfx/logo.png");
 	logo = SDL_CreateTextureFromSurface(Renderer, temp_surface);
 	SDL_QueryTexture(logo, NULL, NULL, &logo_dst.w, &logo_dst.h);
-	logo_dst.x=(ww/2)-(logo_dst.w/2);
-	logo_dst.y=(wh/2)-(logo_dst.h/2);
+	logo_dst.x = (ww/2)-(logo_dst.w/2);
+	logo_dst.y = (wh/2)-(logo_dst.h/2);
 	//END 	LOGO
 	RenderText();
-
 	SDL_FreeSurface(temp_surface);
 }
 
 void RenderText(void)
 {
-
 	//BEGIN Blended
-	temp_surface=TTF_RenderUTF8_Blended(font,text,color);
-	text1= SDL_CreateTextureFromSurface(Renderer, temp_surface);
+	temp_surface = TTF_RenderUTF8_Blended(font,text,color);
+	text1 = SDL_CreateTextureFromSurface(Renderer, temp_surface);
 	SDL_QueryTexture(text1, NULL, NULL, &text1_dst.w, &text1_dst.h);
-	text1_dst.x= 10;
-	text1_dst.y= 0;
+	text1_dst.x = 10;
+	text1_dst.y = 0;
 	//END 	Blended
 
-	TextInputRect.x=0;
-	TextInputRect.y=0;
-	TextInputRect.w=text1_dst.w+20;
-	TextInputRect.h=text1_dst.h;
+	TextInputRect.x = 0;
+	TextInputRect.y = 0;
+	TextInputRect.w = text1_dst.w+20;
+	TextInputRect.h = text1_dst.h;
 }
 
 void assets_out(void)
