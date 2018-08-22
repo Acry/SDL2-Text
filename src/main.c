@@ -211,7 +211,6 @@ while(running){
 						if (SDL_HasClipboardText()){
 							char *temp = SDL_GetClipboardText();
 							size_t lenght = strlen(temp);
-							SDL_Log("l: %zu",lenght);
 							char *temp2;
 							temp2 = realloc( text, lenght+1 );
 							if  (temp2 == NULL){
@@ -239,6 +238,7 @@ while(running){
 	SDL_RenderFillRect(Renderer, &TextInputRect);
 	SDL_RenderCopy(Renderer, text1, NULL, &text1_dst);
 	SDL_RenderPresent(Renderer);
+	SDL_Delay(66);
 	//END   RENDERING
 }
 //END   MAIN LOOP
